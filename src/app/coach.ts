@@ -24,10 +24,7 @@ export function coachTip(view: RoomView): string | null {
       if (!seats.white.taken || !seats.black.taken) {
         return 'Waiting for your opponent — copy the invite link below and send it to a friend.';
       }
-      if (game.openingRolls[you] !== null) {
-        return `You rolled a ${game.openingRolls[you]}. Waiting for ${them} — whoever rolls higher moves first, using both dice. Ties are rerolled.`;
-      }
-      return 'Click "Roll for first" on the board. You each roll one die; the higher roll moves first, playing both dice.';
+      return 'The opening roll happens automatically — you each roll one die, and the higher roll moves first, playing both dice.';
     }
 
     case 'to-roll': {

@@ -96,16 +96,28 @@ export default function Board({ view, onMove, onRoll }: BoardProps) {
     const isSrc = sources.has(i) && myTurn;
     const isSel = selected === i;
 
+    const shape = `${x - POINT_W / 2 + 4},${base} ${x + POINT_W / 2 - 4},${base} ${x},${tipY}`;
     triangles.push(
       <polygon
         key={`pt-${i}`}
-        points={`${x - POINT_W / 2 + 4},${base} ${x + POINT_W / 2 - 4},${base} ${x},${tipY}`}
+        points={shape}
         fill={even ? 'var(--oxblood-deep, #5c221c)' : 'var(--bone-shade, #cdbfa0)'}
         opacity={even ? 0.9 : 0.55}
-        stroke={isDest ? 'var(--brass, #c9a86a)' : 'none'}
-        strokeWidth={isDest ? 3 : 0}
       />,
     );
+    // Destination outline drawn separately so it isn't dimmed by the
+    // triangle's own fill opacity.
+    if (isDest) {
+      triangles.push(
+        <polygon
+          key={`dest-${i}`}
+          points={shape}
+          fill="none"
+          stroke="var(--brass, #c9a86a)"
+          strokeWidth={3}
+        />,
+      );
+    }
 
     const pt = game.points[i];
     const shown = Math.min(pt.count, 5);
@@ -210,10 +222,7 @@ export default function Board({ view, onMove, onRoll }: BoardProps) {
     });
   }
 
-  const canRoll =
-    you !== null &&
-    ((game.phase === 'to-roll' && game.turn === you) ||
-      (game.phase === 'opening-roll' && game.openingRolls[you] === null));
+  const canRoll = you !== null && game.phase === 'to-roll' && game.turn === you;
 
   return (
     <svg
@@ -318,7 +327,7 @@ export default function Board({ view, onMove, onRoll }: BoardProps) {
             fontSize="21"
             fill="oklch(0.97 0.01 85)"
           >
-            {game.phase === 'opening-roll' ? 'Roll for first' : 'Roll dice'}
+            Roll dice
           </text>
         </g>
       )}

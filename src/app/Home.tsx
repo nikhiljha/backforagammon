@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { navigate } from './App';
+import HelpDrawer from './Help';
 
 const LENGTHS = [1, 3, 5, 7];
 
 export default function Home() {
   const [matchLength, setMatchLength] = useState(5);
   const [creating, setCreating] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
 
   const create = async () => {
     setCreating(true);
@@ -75,7 +77,15 @@ export default function Home() {
         <p className="home-foot">
           Anyone with the link can watch. The first two to sit down, play.
         </p>
+        <p className="home-foot">
+          New to backgammon?{' '}
+          <button className="link-btn" onClick={() => setHelpOpen(true)}>
+            Learn how to play
+          </button>{' '}
+          — the board teaches you as you go.
+        </p>
       </div>
+      <HelpDrawer open={helpOpen} onClose={() => setHelpOpen(false)} />
     </main>
   );
 }

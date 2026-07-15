@@ -41,6 +41,9 @@ interface Session {
   token: string | null;
 }
 
+/** Idle rooms are deleted after this long without activity. */
+const ROOM_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
 export class GameRoom {
   private state: DurableObjectState;
   private room: RoomState | null = null;
@@ -59,6 +62,19 @@ export class GameRoom {
 
   private async save(): Promise<void> {
     if (this.room) await this.state.storage.put('room', this.room);
+  }
+
+  private async touch(): Promise<void> {
+    await this.state.storage.setAlarm(Date.now() + ROOM_TTL_MS);
+  }
+
+  async alarm(): Promise<void> {
+    if (this.sessions.length > 0) {
+      await this.touch();
+      return;
+    }
+    await this.state.storage.deleteAll();
+    this.room = null;
   }
 
   async fetch(request: Request): Promise<Response> {
@@ -81,6 +97,7 @@ export class GameRoom {
           settled: false,
         };
         await this.save();
+        await this.touch();
       }
       return Response.json({ ok: true });
     }
@@ -93,6 +110,7 @@ export class GameRoom {
       server.accept();
       const session: Session = { ws: server, token: null };
       this.sessions.push(session);
+      await this.touch();
       server.addEventListener('message', (event) => {
         void this.onMessage(session, String(event.data));
       });
@@ -188,14 +206,8 @@ export class GameRoom {
         break;
       }
       case 'roll': {
-        if (!seat) return;
-        if (game.phase === 'opening-roll' && game.openingRolls[seat] === null) {
-          openingRoll(game, seat, rng);
-        } else if (game.phase === 'to-roll' && game.turn === seat) {
-          startTurnRoll(game, rng);
-        } else {
-          return;
-        }
+        if (!seat || game.phase !== 'to-roll' || game.turn !== seat) return;
+        startTurnRoll(game, rng);
         break;
       }
       case 'move': {
@@ -246,12 +258,27 @@ export class GameRoom {
       }
     }
 
+    // Once both players are seated, the opening roll happens automatically
+    // (ties reroll until decided).
+    while (
+      room.game.phase === 'opening-roll' &&
+      room.seats.white.token !== null &&
+      room.seats.black.token !== null
+    ) {
+      for (const p of ['white', 'black'] as const) {
+        if (room.game.phase === 'opening-roll' && room.game.openingRolls[p] === null) {
+          openingRoll(room.game, p, rng);
+        }
+      }
+    }
+
     if (room.game.phase === 'game-over' && !room.settled) {
       settleGame(room.match, room.game);
       room.settled = true;
     }
 
     await this.save();
+    await this.touch();
     this.broadcast();
   }
 }

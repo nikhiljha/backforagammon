@@ -2,10 +2,15 @@ import { useState } from 'react';
 import { pipCount } from '../shared/engine';
 import type { ClientMessage, Player, RoomView } from '../shared/types';
 import Board from './Board';
+import { coachTip } from './coach';
+import HelpDrawer, { HelpButton } from './Help';
 import { useGameSocket } from './useGameSocket';
+
+const COACH_KEY = 'bfg-coach';
 
 export default function Game({ id }: { id: string }) {
   const { view, status, error, send } = useGameSocket(id);
+  const [helpOpen, setHelpOpen] = useState(false);
 
   if (status === 'not-found') {
     return (
@@ -37,7 +42,10 @@ export default function Game({ id }: { id: string }) {
         <a className="game-brand" href="/">
           Back for a <span>Gammon</span>
         </a>
-        {status !== 'open' && <span className="status-line">Reconnecting…</span>}
+        <div className="game-top-right">
+          {status !== 'open' && <span className="status-line">Reconnecting…</span>}
+          <HelpButton onClick={() => setHelpOpen(true)} />
+        </div>
       </header>
       <div className="game-main">
         <div className="board-wrap">
@@ -47,8 +55,9 @@ export default function Game({ id }: { id: string }) {
             onRoll={() => send({ type: 'roll' })}
           />
         </div>
-        <Sidebar view={view} send={send} />
+        <Sidebar view={view} send={send} onHelp={() => setHelpOpen(true)} />
       </div>
+      <HelpDrawer open={helpOpen} onClose={() => setHelpOpen(false)} />
       {error && <div className="toast" role="alert">{error}</div>}
     </main>
   );
@@ -61,13 +70,25 @@ function seatName(view: RoomView, p: Player): string {
 function Sidebar({
   view,
   send,
+  onHelp,
 }: {
   view: RoomView;
   send: (msg: ClientMessage) => void;
+  onHelp: () => void;
 }) {
   const { game, match, seats, you, spectators } = view;
   const [name, setName] = useState('');
   const [copied, setCopied] = useState(false);
+  const [coach, setCoach] = useState(
+    () => localStorage.getItem(COACH_KEY) !== 'off',
+  );
+
+  const toggleCoach = () => {
+    setCoach((on) => {
+      localStorage.setItem(COACH_KEY, on ? 'off' : 'on');
+      return !on;
+    });
+  };
 
   const copy = async () => {
     await navigator.clipboard.writeText(window.location.href);
@@ -153,6 +174,11 @@ function Sidebar({
 
       <section className="panel">
         <p className="status-line">{statusText()}</p>
+        {coach && coachTip(view) && (
+          <p className="coach-tip">
+            <span className="coach-label">Coach</span> {coachTip(view)}
+          </p>
+        )}
 
         {you === null && openSeat !== null && !match.matchWinner && (
           <div className="sit-row">
@@ -262,6 +288,18 @@ function Sidebar({
             ? 'No one watching.'
             : `${spectators} watching${you === null ? ' (including you)' : ''}.`}
         </p>
+      </section>
+
+      <section className="panel help-panel">
+        <div className="help-panel-row">
+          <button className="link-btn" onClick={onHelp}>
+            How to play
+          </button>
+          <label className="coach-toggle">
+            <input type="checkbox" checked={coach} onChange={toggleCoach} />
+            Coach tips
+          </label>
+        </div>
       </section>
     </aside>
   );

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { Move, Player, RoomView } from '../shared/types';
 
 const FRAME = 26;
@@ -28,13 +28,9 @@ function colX(col: number): number {
 export default function Board({ view, onMove, onRoll }: BoardProps) {
   const { game, you, legalMoves } = view;
   const perspective: Player = you ?? 'white';
-  const [selected, setSelected] = useState<number | 'bar' | null>(null);
+  const [picked, setSelected] = useState<number | 'bar' | null>(null);
 
   const myTurn = you !== null && game.turn === you && game.phase === 'moving';
-
-  useEffect(() => {
-    if (!myTurn) setSelected(null);
-  }, [myTurn, game.remaining.length]);
 
   const sources = useMemo(() => {
     const set = new Set<number | 'bar'>();
@@ -42,12 +38,15 @@ export default function Board({ view, onMove, onRoll }: BoardProps) {
     return set;
   }, [legalMoves]);
 
-  // Auto-select when there is only one possible source (e.g. on the bar).
-  useEffect(() => {
-    if (myTurn && sources.size === 1) {
-      setSelected([...sources][0]);
-    }
-  }, [myTurn, sources]);
+  // Effective selection: only valid on my turn; a lone source (e.g. on the
+  // bar) is selected automatically.
+  const selected: number | 'bar' | null = !myTurn
+    ? null
+    : sources.size === 1
+      ? [...sources][0]
+      : picked !== null && sources.has(picked)
+        ? picked
+        : null;
 
   const destinations = useMemo(() => {
     if (selected === null) return new Map<number | 'off', Move>();

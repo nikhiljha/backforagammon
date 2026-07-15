@@ -1,13 +1,21 @@
 import { useState } from 'react';
 import { navigate } from './App';
-import HelpDrawer from './Help';
 
 const LENGTHS = [1, 3, 5, 7];
+
+/** Extract a room id from a pasted link or bare code. */
+function parseJoinCode(input: string): string | null {
+  const raw = input.trim();
+  if (!raw) return null;
+  const m = raw.match(/\/g\/([A-Za-z0-9-]+)/);
+  const id = m ? m[1] : raw;
+  return /^[A-Za-z0-9-]+$/.test(id) ? id : null;
+}
 
 export default function Home() {
   const [matchLength, setMatchLength] = useState(5);
   const [creating, setCreating] = useState(false);
-  const [helpOpen, setHelpOpen] = useState(false);
+  const [joinCode, setJoinCode] = useState('');
 
   const create = async () => {
     setCreating(true);
@@ -18,10 +26,21 @@ export default function Home() {
         body: JSON.stringify({ matchLength }),
       });
       const { id } = (await res.json()) as { id: string };
+      try {
+        await navigator.clipboard.writeText(`${window.location.origin}/g/${id}`);
+        sessionStorage.setItem('bfg-link-copied', '1');
+      } catch {
+        /* clipboard unavailable; the invite panel still has the link */
+      }
       navigate(`/g/${id}`);
     } catch {
       setCreating(false);
     }
+  };
+
+  const join = () => {
+    const id = parseJoinCode(joinCode);
+    if (id) navigate(`/g/${id}`);
   };
 
   return (
@@ -50,10 +69,6 @@ export default function Home() {
           />
         </svg>
         <h1>Back for a Gammon</h1>
-        <p className="home-tagline">
-          Real backgammon, doubling cube and all. Grab a link, send it to a
-          friend, play. No sign-in, ever.
-        </p>
         <div className="home-form">
           <span className="home-form-label" id="length-label">
             Match to
@@ -73,19 +88,36 @@ export default function Home() {
           <button className="btn btn-primary" onClick={create} disabled={creating}>
             {creating ? 'Setting the table…' : 'Start a match'}
           </button>
+          <div className="home-divider" role="presentation">
+            <span>or</span>
+          </div>
+          <form
+            className="join-row"
+            onSubmit={(e) => {
+              e.preventDefault();
+              join();
+            }}
+          >
+            <input
+              className="name-input"
+              placeholder="Paste a game link or code"
+              value={joinCode}
+              onChange={(e) => setJoinCode(e.target.value)}
+              aria-label="Game link or code"
+            />
+            <button
+              type="submit"
+              className="btn btn-quiet"
+              disabled={parseJoinCode(joinCode) === null}
+            >
+              Join
+            </button>
+          </form>
         </div>
         <p className="home-foot">
           Anyone with the link can watch. The first two to sit down, play.
         </p>
-        <p className="home-foot">
-          New to backgammon?{' '}
-          <button className="link-btn" onClick={() => setHelpOpen(true)}>
-            Learn how to play
-          </button>{' '}
-          — the board teaches you as you go.
-        </p>
       </div>
-      <HelpDrawer open={helpOpen} onClose={() => setHelpOpen(false)} />
     </main>
   );
 }

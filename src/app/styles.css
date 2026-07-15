@@ -726,6 +726,42 @@ a:focus-visible {
   cursor: pointer;
 }
 
+.toast-ok {
+  background: oklch(0.3 0.05 155);
+  border-color: oklch(0.45 0.07 155);
+}
+
+/* Home: join with a link */
+
+.home-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 1.1rem 0;
+  color: var(--ink-faint);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.home-divider::before,
+.home-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+
+.join-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.join-row .name-input {
+  flex: 1;
+  min-width: 0;
+}
+
 /* Banner (game over / cube offer) */
 
 .banner {

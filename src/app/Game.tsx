@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { pipCount } from '../shared/engine';
 import type { ClientMessage, Player, RoomView } from '../shared/types';
 import Board from './Board';
@@ -11,6 +11,16 @@ const COACH_KEY = 'bfg-coach';
 export default function Game({ id }: { id: string }) {
   const { view, status, error, send } = useGameSocket(id);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(
+    () => sessionStorage.getItem('bfg-link-copied') === '1',
+  );
+
+  useEffect(() => {
+    if (!linkCopied) return;
+    sessionStorage.removeItem('bfg-link-copied');
+    const t = setTimeout(() => setLinkCopied(false), 5000);
+    return () => clearTimeout(t);
+  }, [linkCopied]);
 
   if (status === 'not-found') {
     return (
@@ -59,6 +69,11 @@ export default function Game({ id }: { id: string }) {
       </div>
       <HelpDrawer open={helpOpen} onClose={() => setHelpOpen(false)} />
       {error && <div className="toast" role="alert">{error}</div>}
+      {!error && linkCopied && (
+        <div className="toast toast-ok" role="status">
+          Link copied — send it to a friend
+        </div>
+      )}
     </main>
   );
 }

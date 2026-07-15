@@ -757,6 +757,13 @@ a:focus-visible {
   gap: 0.5rem;
 }
 
+.home-form .join-row .btn {
+  width: auto;
+  flex: 0 0 auto;
+  padding: 0.55rem 1.1rem;
+  font-size: 1rem;
+}
+
 .join-row .name-input {
   flex: 1;
   min-width: 0;
